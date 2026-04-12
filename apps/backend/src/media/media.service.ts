@@ -1,0 +1,143 @@
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import type { FindManyOptions } from "typeorm";
+import { Like, type Repository } from "typeorm";
+import { ScrapedPage, ScrapeStatus } from "../scraper/scraped-page.entity";
+import { ScraperService } from "../scraper/scraper.service";
+import { Media } from "./media.entity";
+
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+@Injectable()
+export class MediaService {
+  private readonly logger = new Logger("MediaService");
+
+  constructor(
+    @InjectRepository(Media)
+    private readonly mediaRepo: Repository<Media>,
+    @InjectRepository(ScrapedPage)
+    private readonly scrapedPageRepo: Repository<ScrapedPage>,
+    private readonly scraperService: ScraperService,
+  ) {}
+
+  async scrapeAndSave(
+    urls: string[],
+  ): Promise<{ count: number; saved: number; cached: number; failed: number }> {
+    this.logger.log(`Starting batch scraping for ${urls.length} URLs...`);
+
+    let savedCount = 0;
+    let cachedCount = 0;
+    let failedCount = 0;
+
+    for (const url of urls) {
+      try {
+        // 1. Check cache
+        const cachedPage = await this.scrapedPageRepo.findOne({
+          where: { url },
+        });
+        const now = new Date();
+
+        if (cachedPage && cachedPage.status === ScrapeStatus.SUCCESS) {
+          const isFresh =
+            now.getTime() - cachedPage.lastScrapedAt.getTime() < CACHE_TTL_MS;
+          if (isFresh) {
+            this.logger.log(
+              `URL ${url} is fresh in cache. Returning existing results.`,
+            );
+            const existingMedia = await this.mediaRepo.find({
+              where: { sourceUrl: url },
+            });
+            cachedCount += existingMedia.length;
+            continue;
+          }
+        }
+
+        // 2. Not in cache or expired or failed previously -> scrape
+        const response = await this.scraperService.scrapeUrl(url);
+
+        // 3. Update ScrapedPage table
+        const scrapedPage = cachedPage || new ScrapedPage();
+        scrapedPage.url = url;
+        scrapedPage.status = response.status;
+        scrapedPage.hash = response.hash ?? null;
+        scrapedPage.errorMessage = response.errorMessage ?? null;
+        scrapedPage.lastScrapedAt = now;
+        await this.scrapedPageRepo.save(scrapedPage);
+
+        if (response.status === ScrapeStatus.SUCCESS) {
+          // 4. Save media items
+          const itemsToSave = response.results.map((data) => {
+            const m = new Media();
+            m.url = data.url.substring(0, 512);
+            m.sourceUrl = data.sourceUrl.substring(0, 512);
+            m.type = data.type;
+            return m;
+          });
+
+          // Optional: Clear old media for this sourceUrl before saving new ones to avoid duplicates/stale data
+          await this.mediaRepo.delete({ sourceUrl: url });
+
+          if (itemsToSave.length > 0) {
+            // Deduplicate within this batch
+            const uniqueItems = Array.from(
+              new Map(itemsToSave.map((item) => [item.url, item])).values(),
+            );
+
+            // For simplicity, we just save. In production, we might want to check for existing URLs to avoid duplicates.
+            // Using save() will handle updates if we have a unique constraint, but here we'll just insert.
+            await this.mediaRepo.save(uniqueItems);
+            savedCount += uniqueItems.length;
+          }
+        } else {
+          failedCount++;
+        }
+      } catch (err) {
+        this.logger.error(`Failed to process ${url}: ${err.message}`);
+        failedCount++;
+      }
+    }
+
+    return {
+      count: savedCount + cachedCount,
+      saved: savedCount,
+      cached: cachedCount,
+      failed: failedCount,
+    };
+  }
+
+  async getMedia(
+    page: number = 1,
+    limit: number = 20,
+    type?: string,
+    search?: string,
+  ): Promise<{
+    data: Media[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const options: FindManyOptions<Media> = {
+      take: limit,
+      skip: (page - 1) * limit,
+      order: { createdAt: "DESC" },
+      where: {},
+    };
+
+    if (type && type !== "all") {
+      (options.where as any).type = type;
+    }
+
+    if (search) {
+      (options.where as any).sourceUrl = Like(`%${search}%`);
+    }
+
+    const [data, total] = await this.mediaRepo.findAndCount(options);
+
+    return {
+      data,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+}
