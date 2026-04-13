@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { FindManyOptions } from "typeorm";
-import { Like, type Repository } from "typeorm";
+import { Brackets, Like, type Repository } from "typeorm";
 import { ScrapedPage, ScrapeStatus } from "../scraper/scraped-page.entity";
 import { ScraperService } from "../scraper/scraper.service";
 import { Media } from "./media.entity";
@@ -71,10 +71,12 @@ export class MediaService {
             m.url = data.url.substring(0, 512);
             m.sourceUrl = data.sourceUrl.substring(0, 512);
             m.type = data.type;
+            if (data.title) m.title = data.title.substring(0, 512);
+            if (data.alt) m.alt = data.alt;
             return m;
           });
 
-          // Optional: Clear old media for this sourceUrl before saving new ones to avoid duplicates/stale data
+          // Clear old media for this sourceUrl before saving new ones to avoid duplicates/stale data
           await this.mediaRepo.delete({ sourceUrl: url });
 
           if (itemsToSave.length > 0) {
@@ -83,8 +85,6 @@ export class MediaService {
               new Map(itemsToSave.map((item) => [item.url, item])).values(),
             );
 
-            // For simplicity, we just save. In production, we might want to check for existing URLs to avoid duplicates.
-            // Using save() will handle updates if we have a unique constraint, but here we'll just insert.
             await this.mediaRepo.save(uniqueItems);
             savedCount += uniqueItems.length;
           }
@@ -92,7 +92,7 @@ export class MediaService {
           failedCount++;
         }
       } catch (err) {
-        this.logger.error(`Failed to process ${url}: ${err.message}`);
+        this.logger.error(`Failed to scrape ${url}: ${err.message}`);
         failedCount++;
       }
     }
@@ -110,28 +110,34 @@ export class MediaService {
     limit: number = 20,
     type?: string,
     search?: string,
+    sort: "asc" | "desc" = "desc",
   ): Promise<{
     data: Media[];
     total: number;
     page: number;
     totalPages: number;
   }> {
-    const options: FindManyOptions<Media> = {
-      take: limit,
-      skip: (page - 1) * limit,
-      order: { createdAt: "DESC" },
-      where: {},
-    };
+    const qb = this.mediaRepo.createQueryBuilder("media");
 
     if (type && type !== "all") {
-      (options.where as any).type = type;
+      qb.andWhere("media.type = :type", { type });
     }
 
     if (search) {
-      (options.where as any).sourceUrl = Like(`%${search}%`);
+      qb.andWhere(
+        new Brackets((sqb) => {
+          sqb
+            .where("media.sourceUrl LIKE :search", { search: `%${search}%` })
+            .orWhere("media.title LIKE :search", { search: `%${search}%` })
+            .orWhere("media.alt LIKE :search", { search: `%${search}%` });
+        }),
+      );
     }
 
-    const [data, total] = await this.mediaRepo.findAndCount(options);
+    qb.orderBy("media.createdAt", sort === "asc" ? "ASC" : "DESC");
+    qb.skip((page - 1) * limit).take(limit);
+
+    const [data, total] = await qb.getManyAndCount();
 
     return {
       data,
@@ -139,5 +145,29 @@ export class MediaService {
       page,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async getScrapedPagesGroupedByDomain(): Promise<Record<string, ScrapedPage[]>> {
+    const pages = await this.scrapedPageRepo.find({
+      order: { lastScrapedAt: "DESC" },
+    });
+
+    const grouped: Record<string, ScrapedPage[]> = {};
+    for (const page of pages) {
+      try {
+        const urlObj = new URL(page.url);
+        const domain = urlObj.hostname;
+        if (!grouped[domain]) {
+          grouped[domain] = [];
+        }
+        grouped[domain].push(page);
+      } catch {
+        // Fallback or ignore if URL is somehow invalid
+        const domain = "unknown";
+        if (!grouped[domain]) grouped[domain] = [];
+        grouped[domain].push(page);
+      }
+    }
+    return grouped;
   }
 }

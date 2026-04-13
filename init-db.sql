@@ -1,4 +1,4 @@
--- Initialize database for Media Scraper
+DROP DATABASE IF EXISTS `media_scraper`;
 CREATE DATABASE IF NOT EXISTS `media_scraper`;
 USE `media_scraper`;
 
@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS `media` (
   `url` VARCHAR(512) NOT NULL,
   `type` VARCHAR(50) NOT NULL COMMENT "'image' or 'video'",
   `sourceUrl` VARCHAR(512) NOT NULL,
+  `title` VARCHAR(512) DEFAULT NULL,
+  `alt` TEXT DEFAULT NULL,
   `createdAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
   INDEX `idx_source_url` (`sourceUrl`),
   INDEX `idx_created_at` (`createdAt`)

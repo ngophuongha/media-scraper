@@ -3,9 +3,13 @@ version: "3.8"
 services:
   db:
     image: mysql:8
+    volumes:
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql  
     environment:
       MYSQL_ROOT_PASSWORD: secret
-      MYSQL_DATABASE: media
+      MYSQL_DATABASE: media_scraper
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppass
     ports:
       - "3306:3306"
 
@@ -15,9 +19,10 @@ services:
       - "3000:3000"
     environment:
       DB_HOST: db
-      DB_USER: root
-      DB_PASS: secret
-      DB_NAME: media
+      DB_USER: appuser
+      DB_PASSWORD: apppass
+      DB_NAME: media_scraper
+      DB_PORT: 3306
     depends_on:
       - db
 

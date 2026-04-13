@@ -43,18 +43,28 @@ export class MediaController {
   @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiQuery({ name: "type", required: false, enum: ["image", "video", "all"] })
   @ApiQuery({ name: "search", required: false, type: String })
+  @ApiQuery({ name: "sort", required: false, enum: ["asc", "desc"] })
   @ApiResponse({ status: 200, description: "Return list of media." })
   async getMedia(
     @Query("page") page: string,
     @Query("limit") limit: string,
     @Query("type") type: string,
     @Query("search") search: string,
+    @Query("sort") sort: "asc" | "desc",
   ) {
     return this.mediaService.getMedia(
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
       type,
       search,
+      sort,
     );
+  }
+
+  @Get("scraped-pages")
+  @ApiOperation({ summary: "Get list of scraped pages grouped by domain" })
+  @ApiResponse({ status: 200, description: "Return grouped list." })
+  async getScrapedPagesGrouped() {
+    return this.mediaService.getScrapedPagesGroupedByDomain();
   }
 }

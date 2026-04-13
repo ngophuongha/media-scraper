@@ -8,6 +8,8 @@ export interface ScrapeResult {
   url: string;
   type: string;
   sourceUrl: string;
+  title?: string;
+  alt?: string;
 }
 
 export interface ScrapeResponse {
@@ -44,33 +46,64 @@ export class ScraperService {
         }
       };
 
+      const isBadUrl = (src: string) => {
+        if (!src) return true;
+        const lower = src.trim().toLowerCase();
+        if (lower === "#" || lower.startsWith("javascript:") || lower.startsWith("data:image/")) return true;
+        return false;
+      };
+
+      const isNoise = (url: string, el: any) => {
+        if (url.includes("favicon.ico")) return true;
+        const width = $(el).attr("width");
+        const height = $(el).attr("height");
+        if ((width && parseInt(width) <= 1) || (height && parseInt(height) <= 1)) return true;
+        return false;
+      };
+
+      const guessType = (urlStr: string, defaultType: string) => {
+        try {
+          const pathname = new URL(urlStr).pathname.toLowerCase();
+          if (pathname.endsWith(".mp4") || pathname.endsWith(".webm") || pathname.endsWith(".ogg") || pathname.endsWith(".mov")) return "video";
+          if (pathname.endsWith(".jpg") || pathname.endsWith(".jpeg") || pathname.endsWith(".png") || pathname.endsWith(".gif") || pathname.endsWith(".webp")) return "image";
+        } catch {}
+        return defaultType;
+      };
+
       // Extract Images
       $("img").each((_, el) => {
         const src = $(el).attr("src");
-        if (src) {
-          const normalized = normalize(src);
-          if (normalized)
-            results.push({ url: normalized, type: "image", sourceUrl });
+        if (!src || isBadUrl(src)) return;
+        const normalized = normalize(src);
+        if (normalized && !isNoise(normalized, el)) {
+          const alt = $(el).attr("alt");
+          const title = $(el).attr("title");
+          const type = guessType(normalized, "image");
+          results.push({ url: normalized, type, sourceUrl, alt, title });
         }
       });
 
       // Extract Videos
       $("video").each((_, el) => {
         const src = $(el).attr("src");
-        if (src) {
+        if (src && !isBadUrl(src)) {
           const normalized = normalize(src);
-          if (normalized)
-            results.push({ url: normalized, type: "video", sourceUrl });
+          if (normalized) {
+            const title = $(el).attr("title");
+            results.push({ url: normalized, type: guessType(normalized, "video"), sourceUrl, title });
+          }
         }
         // check inner source tags
         $(el)
           .find("source")
           .each((_, sourceEl) => {
             const sSrc = $(sourceEl).attr("src");
-            if (sSrc) {
+            if (sSrc && !isBadUrl(sSrc)) {
               const normalized = normalize(sSrc);
-              if (normalized)
-                results.push({ url: normalized, type: "video", sourceUrl });
+              if (normalized) {
+                const title = $(sourceEl).attr("title") || $(el).attr("title");
+                results.push({ url: normalized, type: guessType(normalized, "video"), sourceUrl, title });
+              }
             }
           });
       });

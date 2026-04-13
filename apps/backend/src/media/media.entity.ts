@@ -19,6 +19,12 @@ export class Media {
   @Column({ type: "varchar", length: 512 })
   sourceUrl: string; // The URL from which it was scraped
 
+  @Column({ type: "varchar", length: 512, nullable: true })
+  title: string;
+
+  @Column({ type: "text", nullable: true })
+  alt: string;
+
   @CreateDateColumn()
   createdAt: Date;
 }
