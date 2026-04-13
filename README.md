@@ -32,7 +32,7 @@ The system accepts a list of webpage URLs, extracts image/video assets, stores t
 
 # Documentation
 
-- Product Requirement Document: `[./docs/prd.md]`
+- [Product Requirement Document](./docs/product-design.md)
 - [Front-end System Design](./docs/frontend-design.md)
 - [Back-end System Design](./docs/backend-design.md)
 - Demo Video: `[Link Here]`

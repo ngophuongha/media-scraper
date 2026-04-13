@@ -4,21 +4,19 @@
 
 ### 1.1 Functional Requirements
 
-What the backend currently does:
-
-| # | Feature | Endpoint |
-|---|---|---|
-| F1 | Accept a list of URLs and scrape `<img>` / `<video>` media from each | `POST /api/media/scrape` |
-| F2 | Return paginated, filterable, sortable media results | `GET /api/media` |
-| F3 | Filter by media type (`image` / `video` / `all`) and free-text search across URL, title, alt | `GET /api/media?type=&search=` |
+| # | System can... |
+|---|---|
+| F1 | Accept a list of URLs and scrape media (images and videos) from them |
+| F2 | Provide paginated and sortable media results |
+| F3 | Filter media by type and search by keyword across URLs, titles, and alt text |
 
 ### 1.2 Non-Functional Requirements
 
-| # | Requirement | Target | Current Reality |
-|---|---|---|---|
-| NF1 | **Throughput** | Handle 5 000 simultaneous HTTP requests | ~200–500 concurrent reads before DB I/O saturates; scrape requests bottleneck on sequential I/O + V8 heap |
-| NF2 | **Memory** | Run within 1 GB RAM | Single Node.js process uses ~150–300 MB idle; OOM risk at high concurrent scrape volume (full HTML buffered per request) |
-| NF3 | **Data freshness** | Cached results served for up to 24 h | Hard-coded TTL; no manual cache invalidation API |
+| # | Quality | Target |
+|---|---|---|
+| NF1 | **Throughput** | Handle 5 000 simultaneous HTTP requests |
+| NF2 | **Memory** | Run within 1 GB RAM |
+| NF3 | **Data freshness** | Serve cached results for up to 24 hours to prevent unnecessary re-fetching |
 
 ---
 
