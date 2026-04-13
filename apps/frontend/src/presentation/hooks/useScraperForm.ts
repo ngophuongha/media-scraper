@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useScrapeMedia } from "../../application/useScrapeMedia";
 import { scrapeMedia } from "../../dataSource/mediaList";
 import { useToast } from "../shared/ToastContext";
