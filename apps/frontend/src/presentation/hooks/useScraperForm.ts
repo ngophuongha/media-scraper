@@ -86,7 +86,7 @@ export const useScraperForm = ({ onSuccess }: ScraperFormProps) => {
     scrape(
       { urls: urlList },
       {
-        onSuccess: (data) => {
+        onSuccess: (data: any) => {
           if (data.failed > 0) {
             const failedUrlsText = data.failedUrls ? data.failedUrls.join(", ") : "some URLs";
             showToast("error", `Failed to scrape: ${failedUrlsText}`);
