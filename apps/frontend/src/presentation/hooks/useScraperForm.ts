@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { useScrapeMedia } from "../../application/useScrapeMedia";
 import { scrapeMedia } from "../../dataSource/mediaList";
+import { useToast } from "../shared/ToastContext";
 
 type ScraperFormProps = {
   onSuccess: () => void;
@@ -59,6 +60,7 @@ const isUrlsValid = (
 export const useScraperForm = ({ onSuccess }: ScraperFormProps) => {
   const [urls, setUrls] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const {
     mutate: scrape,
@@ -84,10 +86,19 @@ export const useScraperForm = ({ onSuccess }: ScraperFormProps) => {
     scrape(
       { urls: urlList },
       {
-        onSuccess: () => {
-          setUrls("");
+        onSuccess: (data) => {
+          if (data.failed > 0) {
+            const failedUrlsText = data.failedUrls ? data.failedUrls.join(", ") : "some URLs";
+            showToast("error", `Failed to scrape: ${failedUrlsText}`);
+          } else {
+            showToast("success", `Successfully scraped ${data.count} media items perfectly!`);
+            setUrls("");
+          }
           onSuccess();
         },
+        onError: (err) => {
+          showToast("error", `System error: ${err.message}`);
+        }
       },
     );
   };

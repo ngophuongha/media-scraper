@@ -22,12 +22,13 @@ export class MediaService {
 
   async scrapeAndSave(
     urls: string[],
-  ): Promise<{ count: number; saved: number; cached: number; failed: number }> {
+  ): Promise<{ count: number; saved: number; cached: number; failed: number; failedUrls: string[] }> {
     this.logger.log(`Starting batch scraping for ${urls.length} URLs...`);
 
     let savedCount = 0;
     let cachedCount = 0;
     let failedCount = 0;
+    const failedUrls: string[] = [];
 
     for (const url of urls) {
       try {
@@ -90,10 +91,12 @@ export class MediaService {
           }
         } else {
           failedCount++;
+          failedUrls.push(url);
         }
       } catch (err) {
         this.logger.error(`Failed to scrape ${url}: ${err.message}`);
         failedCount++;
+        failedUrls.push(url);
       }
     }
 
@@ -102,6 +105,7 @@ export class MediaService {
       saved: savedCount,
       cached: cachedCount,
       failed: failedCount,
+      failedUrls,
     };
   }
 
@@ -110,6 +114,7 @@ export class MediaService {
     limit: number = 20,
     type?: string,
     search?: string,
+    sourceUrl?: string,
     sort: "asc" | "desc" = "desc",
   ): Promise<{
     data: Media[];
@@ -132,6 +137,10 @@ export class MediaService {
             .orWhere("media.alt LIKE :search", { search: `%${search}%` });
         }),
       );
+    }
+
+    if (sourceUrl) {
+      qb.andWhere("media.sourceUrl = :sourceUrl", { sourceUrl });
     }
 
     qb.orderBy("media.createdAt", sort === "asc" ? "ASC" : "DESC");

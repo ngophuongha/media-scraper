@@ -10,11 +10,15 @@ import { NoMediaFound } from "../shared/NoMediaFound";
 type GalleryGridProps = {
   filter: FilterType;
   debouncedSearch: string;
+  sort: "asc" | "desc";
+  sourceUrl: string;
   setSelectedMedia: (item: MediaItemData) => void;
 };
 export const GalleryGrid = ({
   filter,
   debouncedSearch,
+  sort,
+  sourceUrl,
   setSelectedMedia,
 }: GalleryGridProps) => {
   const {
@@ -24,19 +28,28 @@ export const GalleryGrid = ({
     hasNextPage,
     data,
     isError,
-  } = useMediaListData({ filter, debouncedSearch });
+  } = useMediaListData({ filter, debouncedSearch, sort, sourceUrl });
   const observerTarget = useInfiniteScroll({
     onLoadMore: () => fetchNextPage(),
     isLoading: isLoading || isFetchingNextPage,
     hasMore: hasNextPage ?? false,
   });
   const allItems = data?.pages.flatMap((page) => page.data) || [];
+  const totalItems = data?.pages?.[0]?.total ?? 0;
   const { columns } = useMasonry(allItems);
 
   if (isError) return <ListErrorState />;
 
   return (
     <>
+      {/* {allItems.length > 0 && !isLoading && (
+        <div className="flex justify-between items-center bg-gray-50 px-4 py-2 rounded-lg text-sm text-gray-500 shadow-sm border border-brand-gradient-middle/10 mx-auto w-full max-w-7xl mb-4">
+          <span className="font-medium text-gray-600">Showing results</span>
+          <span className="font-semibold text-brand-gradient-middle bg-brand-gradient-middle/10 px-2 py-0.5 rounded-full">
+            {Math.min(allItems.length, totalItems)} / {totalItems}
+          </span>
+        </div>
+      )} */}
       {isLoading ? (
         <GallerySkeleton />
       ) : allItems.length === 0 ? (

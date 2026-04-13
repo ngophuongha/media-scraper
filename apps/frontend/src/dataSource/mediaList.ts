@@ -1,13 +1,15 @@
-import { mockMediaList } from "./mediaList.fixture";
-
 export const fetchMedia = async ({
   pageParam = 1,
   filter = "all",
   debouncedSearch = "",
+  sort = "desc",
+  sourceUrl = "",
 }: {
   pageParam?: number;
   filter?: string;
   debouncedSearch?: string;
+  sort?: "asc" | "desc";
+  sourceUrl?: string;
 }) => {
   try {
     const url = new URL("http://localhost:3000/api/media");
@@ -15,26 +17,20 @@ export const fetchMedia = async ({
     url.searchParams.append("limit", "12");
     if (filter && filter !== "all") url.searchParams.append("type", filter);
     if (debouncedSearch) url.searchParams.append("search", debouncedSearch);
+    if (sort) url.searchParams.append("sort", sort);
+    if (sourceUrl) url.searchParams.append("sourceUrl", sourceUrl);
 
     const res = await fetch(url.toString());
     if (!res.ok) throw new Error("API down");
     return res.json();
   } catch (e) {
-    console.warn("API connection failed, falling back to mock data");
-
-    const filteredData = mockMediaList.filter((item) => {
-      const matchesFilter = filter === "all" || item.type === filter;
-      const matchesSearch =
-        !debouncedSearch ||
-        item.url.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        item.sourceUrl.toLowerCase().includes(debouncedSearch.toLowerCase());
-      return matchesFilter && matchesSearch;
-    });
+    console.warn("API connection failed");
 
     return {
-      data: filteredData,
+      data: [],
       page: 1,
-      totalPages: 5,
+      totalPages: 0,
+      total: 0,
     };
   }
 };
@@ -48,12 +44,8 @@ export const scrapeMedia = async ({ urls }: { urls: string[] }) => {
     });
 
     if (!res.ok) throw new Error("Scrape failed");
-    return res.json();
+    return res.json() as Promise<{ count: number; saved: number; cached: number; failed: number; failedUrls: string[] }>;
   } catch (_e) {
-    console.warn(
-      "Scraper API unreachable, simulating local success for UI testing",
-    );
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    return { success: true };
+    return { count: 0, saved: 0, cached: 0, failed: urls.length, failedUrls: urls };
   }
 };

@@ -43,6 +43,7 @@ export class MediaController {
   @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiQuery({ name: "type", required: false, enum: ["image", "video", "all"] })
   @ApiQuery({ name: "search", required: false, type: String })
+  @ApiQuery({ name: "sourceUrl", required: false, type: String })
   @ApiQuery({ name: "sort", required: false, enum: ["asc", "desc"] })
   @ApiResponse({ status: 200, description: "Return list of media." })
   async getMedia(
@@ -50,6 +51,7 @@ export class MediaController {
     @Query("limit") limit: string,
     @Query("type") type: string,
     @Query("search") search: string,
+    @Query("sourceUrl") sourceUrl: string,
     @Query("sort") sort: "asc" | "desc",
   ) {
     return this.mediaService.getMedia(
@@ -57,6 +59,7 @@ export class MediaController {
       limit ? parseInt(limit, 10) : 20,
       type,
       search,
+      sourceUrl,
       sort,
     );
   }

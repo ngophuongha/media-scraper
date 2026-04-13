@@ -8,17 +8,23 @@ import type { MediaItemData } from "../components/MediaItem";
 export const useMediaListData = ({
   filter,
   debouncedSearch,
+  sort,
+  sourceUrl,
 }: {
   filter: FilterType;
   debouncedSearch: string;
+  sort: "asc" | "desc";
+  sourceUrl: string;
 }) => {
-  return useGetMediaList({ filter, debouncedSearch, queryFn: fetchMedia });
+  return useGetMediaList({ filter, debouncedSearch, sort, sourceUrl, queryFn: fetchMedia });
 };
 
 export const useMediaList = () => {
   const [filter, setFilter] = useState<FilterType>("all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [sort, setSort] = useState<"asc" | "desc">("desc");
+  const [sourceUrl, setSourceUrl] = useState("");
   const [selectedMedia, setSelectedMedia] = useState<MediaItemData | null>(
     null,
   );
@@ -32,9 +38,13 @@ export const useMediaList = () => {
   return {
     setFilter,
     setSearch,
+    setSort,
+    setSourceUrl,
     filter,
     search,
     debouncedSearch,
+    sort,
+    sourceUrl,
     selectedMedia,
     setSelectedMedia,
   };
