@@ -72,7 +72,7 @@ export const useScraperForm = ({ onSuccess }: ScraperFormProps) => {
     if (!urls.trim()) return;
 
     const { isValid, error, urlList } = isUrlsValid(urls);
-    console.log('isValid', isValid);
+    console.log("isValid", isValid);
     if (!isValid) {
       setValidationError(error);
       return;

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { Search } from "./Search";
 
@@ -6,7 +6,9 @@ describe("Search component", () => {
   it("renders with a placeholder and initial value", () => {
     render(<Search search="initial text" setSearch={jest.fn()} />);
 
-    const inputElement = screen.getByPlaceholderText("Search media by title or URL...");
+    const inputElement = screen.getByPlaceholderText(
+      "Search media by title or URL...",
+    );
     expect(inputElement).toBeInTheDocument();
     expect(inputElement).toHaveValue("initial text");
   });
@@ -15,7 +17,9 @@ describe("Search component", () => {
     const mockSetSearch = jest.fn();
     render(<Search search="" setSearch={mockSetSearch} />);
 
-    const inputElement = screen.getByPlaceholderText("Search media by title or URL...");
+    const inputElement = screen.getByPlaceholderText(
+      "Search media by title or URL...",
+    );
     fireEvent.change(inputElement, { target: { value: "new text" } });
 
     expect(mockSetSearch).toHaveBeenCalledTimes(1);

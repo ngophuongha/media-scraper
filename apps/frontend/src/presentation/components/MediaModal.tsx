@@ -1,7 +1,6 @@
 import { Check, Copy, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { MediaItemData } from "./MediaItem";
-
+import type { MediaItemData } from "./MediaItem";
 
 interface MediaModalProps {
   item: MediaItemData;

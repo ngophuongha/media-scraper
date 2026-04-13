@@ -10,16 +10,23 @@ const Header = React.lazy(() =>
     default: module.Header,
   })),
 );
+const NetworkOffline = React.lazy(() =>
+  import("./presentation/shared/NetworkOffline").then((module) => ({
+    default: module.NetworkOffline,
+  })),
+);
 function App() {
   return (
     <ErrorBoundary>
-      <Page>
-        <Header />
-        <Main>
-          <ScraperFormSection />
-          <Gallery />
-        </Main>
-      </Page>
+      <NetworkOffline>
+        <Page>
+          <Header />
+          <Main>
+            <ScraperFormSection />
+            <Gallery />
+          </Main>
+        </Page>
+      </NetworkOffline>
     </ErrorBoundary>
   );
 }

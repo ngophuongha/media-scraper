@@ -55,9 +55,7 @@ export class ErrorBoundary extends React.Component<
                 <RefreshCw className="w-4 h-4" />
                 Try Again
               </button>
-              <button
-                onClick={() => (window.location.href = "/")}
-              >
+              <button onClick={() => (window.location.href = "/")}>
                 Go Home
               </button>
             </div>

@@ -1,5 +1,5 @@
-import { renderHook, act } from "@testing-library/react";
-import { useCopyToClipboard, copyToClipboard } from "./useCopyToClipboard";
+import { act, renderHook } from "@testing-library/react";
+import { copyToClipboard, useCopyToClipboard } from "./useCopyToClipboard";
 
 // Mock navigator.clipboard
 Object.assign(navigator, {
@@ -25,9 +25,9 @@ describe("useCopyToClipboard", () => {
 
   it("handleCopy should copy text and update copiedId temporarily", () => {
     const { result } = renderHook(() => useCopyToClipboard());
-    
+
     expect(result.current.copiedId).toBeNull();
-    
+
     const mockEvent = {
       stopPropagation: jest.fn(),
     } as unknown as React.MouseEvent;
@@ -35,16 +35,18 @@ describe("useCopyToClipboard", () => {
     act(() => {
       result.current.handleCopy(mockEvent, 123, "http://example.com/image.jpg");
     });
-    
+
     expect(mockEvent.stopPropagation).toHaveBeenCalled();
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith("http://example.com/image.jpg");
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      "http://example.com/image.jpg",
+    );
     expect(result.current.copiedId).toBe(123);
-    
+
     // Fast-forward time by 2 seconds
     act(() => {
       jest.advanceTimersByTime(2000);
     });
-    
+
     expect(result.current.copiedId).toBeNull();
   });
 });

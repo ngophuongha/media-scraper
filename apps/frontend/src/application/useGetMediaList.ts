@@ -26,6 +26,8 @@ export const useGetMediaList = ({
     initialPageParam: 1,
     getNextPageParam: (lastPage: any) =>
       lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
   });
 
   return {

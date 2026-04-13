@@ -1,4 +1,4 @@
-import { renderHook, act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { useInfiniteScroll } from "./useInfiniteScroll";
 
 describe("useInfiniteScroll", () => {
@@ -16,7 +16,7 @@ describe("useInfiniteScroll", () => {
         onLoadMore: jest.fn(),
         isLoading: false,
         hasMore: true,
-      })
+      }),
     );
 
     expect(result.current).toHaveProperty("current");
@@ -29,7 +29,7 @@ describe("useInfiniteScroll", () => {
         onLoadMore: mockOnLoadMore,
         isLoading: true,
         hasMore: true,
-      })
+      }),
     );
 
     // Mock DOM elements
@@ -37,7 +37,7 @@ describe("useInfiniteScroll", () => {
     mockElement.getBoundingClientRect = jest.fn().mockReturnValue({
       bottom: 0,
     });
-    
+
     // Assign to ref
     (result.current as any).current = mockElement;
 
@@ -57,14 +57,14 @@ describe("useInfiniteScroll", () => {
         onLoadMore: mockOnLoadMore,
         isLoading: false,
         hasMore: false,
-      })
+      }),
     );
 
     const mockElement = document.createElement("div");
     mockElement.getBoundingClientRect = jest.fn().mockReturnValue({
       bottom: 0,
     });
-    
+
     (result.current as any).current = mockElement;
 
     act(() => {
@@ -83,15 +83,15 @@ describe("useInfiniteScroll", () => {
         isLoading: false,
         hasMore: true,
         threshold: 100,
-      })
+      }),
     );
 
     const mockElement = document.createElement("div");
     mockElement.getBoundingClientRect = jest.fn().mockReturnValue({
       // simulate bottom is clearly visible (0 <= windowHeight + 100)
-      bottom: 50, 
+      bottom: 50,
     });
-    
+
     (result.current as any).current = mockElement;
 
     act(() => {
