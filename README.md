@@ -36,7 +36,7 @@ The system accepts a list of webpage URLs, extracts image/video assets, stores t
 - [Product Requirement Document](./docs/product-design.md)
 - [Front-end System Design](./docs/frontend-design.md)
 - [Back-end System Design](./docs/backend-design.md)
-- Demo Video: `[https://drive.google.com/file/d/1insZoqOoC4P5FoAOS8xvg32ncv6Y8lJ7/view?usp=sharing]`
+- [Demo Video](https://drive.google.com/file/d/1insZoqOoC4P5FoAOS8xvg32ncv6Y8lJ7/view?usp=sharing)
 
 ---
 
