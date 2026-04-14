@@ -2,7 +2,7 @@
 
 ## Problem
 
-CXM teams analyzing brands and competitors spend significant manual effort collecting visual assets — hero images, campaign videos, banners — scattered across multiple web pages. There is no lightweight tool to quickly index and review a competitor or brand's media footprint by URL.
+CXM teams have to collect media — such as hero images, campaign videos, and banners — from scattered web pages. The manual collection process takes time and makes it harder to quickly index and review a competitor or brand's media footprint by URL.
 
 ## Product Purpose
 
@@ -31,4 +31,9 @@ A media scraping tool to **collect, browse, and compare visual assets** from any
 | Input | Up to 5 URLs per scrape request |
 | Asset types | Images and videos found in `<img>` / `<video>` / `<source>` tags |
 | Access control | None — intended for internal team use |
-| Deployment | Docker Compose (self-hosted) |
+
+## Future Enhancements
+
+- **Export to CSV**: Enable users to export the current view of media assets (including URLs, titles, and source information) as a CSV file to support data analysis and third-party tool integration.
+- **Enhanced Scraper**: Support for background-images, `srcset` attributes, and JavaScript-rendered media assets via headless browser integration.
+- **Scheduled Scraping**: Allow users to set up recurring scraping jobs to monitor competitor sites over time.

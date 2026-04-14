@@ -4,7 +4,7 @@ import { ScraperFormSection } from "./presentation/containers/ScraperForm";
 import { ErrorBoundary } from "./presentation/shared/ErrorBoundary";
 import { Main } from "./presentation/shared/Main";
 import { Page } from "./presentation/shared/Page";
-import { ToastProvider } from "./presentation/shared/ToastContext";
+import { ToastContainer } from "./presentation/shared/ToastContext";
 
 const Header = React.lazy(() =>
   import("./presentation/shared/Header").then((module) => ({
@@ -19,17 +19,16 @@ const NetworkOffline = React.lazy(() =>
 function App() {
   return (
     <ErrorBoundary>
-      <ToastProvider>
-        <NetworkOffline>
-          <Page>
-            <Header />
-            <Main>
-              <ScraperFormSection />
-              <Gallery />
-            </Main>
-          </Page>
-        </NetworkOffline>
-      </ToastProvider>
+      <NetworkOffline>
+        <Page>
+          <Header />
+          <Main>
+            <ScraperFormSection />
+            <Gallery />
+          </Main>
+        </Page>
+        <ToastContainer />
+      </NetworkOffline>
     </ErrorBoundary>
   );
 }

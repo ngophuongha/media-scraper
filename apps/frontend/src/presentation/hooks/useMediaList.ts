@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useGetMediaList } from "../../application/useGetMediaList";
 import { fetchMedia } from "../../dataSource/mediaList";
 import { debounce } from "../../utils/debounce";
-import type { FilterType } from "../components/Filter";
-import type { MediaItemData } from "../components/MediaItem";
+import { useMediaListStore } from "./useMediaListStore";
 
 export const useMediaListData = ({
   filter,
@@ -11,41 +10,30 @@ export const useMediaListData = ({
   sort,
   sourceUrl,
 }: {
-  filter: FilterType;
+  filter: any;
   debouncedSearch: string;
   sort: "asc" | "desc";
   sourceUrl: string;
 }) => {
-  return useGetMediaList({ filter, debouncedSearch, sort, sourceUrl, queryFn: fetchMedia });
-};
-
-export const useMediaList = () => {
-  const [filter, setFilter] = useState<FilterType>("all");
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [sourceUrl, setSourceUrl] = useState("");
-  const [selectedMedia, setSelectedMedia] = useState<MediaItemData | null>(
-    null,
-  );
-
-  useEffect(() => {
-    const handler = () => setDebouncedSearch(search);
-    const debouncedHandler = debounce(handler, 500);
-    debouncedHandler();
-  }, [search]);
-
-  return {
-    setFilter,
-    setSearch,
-    setSort,
-    setSourceUrl,
+  return useGetMediaList({
     filter,
-    search,
     debouncedSearch,
     sort,
     sourceUrl,
-    selectedMedia,
-    setSelectedMedia,
+    queryFn: fetchMedia,
+  });
+};
+
+export const useMediaList = () => {
+  const store = useMediaListStore();
+
+  useEffect(() => {
+    const handler = () => store.setDebouncedSearch(store.search);
+    const debouncedHandler = debounce(handler, 500);
+    debouncedHandler();
+  }, [store.search, store.setDebouncedSearch]);
+
+  return {
+    ...store,
   };
 };

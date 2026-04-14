@@ -6,12 +6,20 @@ import { MediaService } from "./media.service";
 import { ScraperService } from "../scraper/scraper.service";
 import { ScrapedPage, ScrapeStatus } from "../scraper/scraped-page.entity";
 
+const mockQueryBuilder = {
+  andWhere: jest.fn().mockReturnThis(),
+  orderBy: jest.fn().mockReturnThis(),
+  skip: jest.fn().mockReturnThis(),
+  take: jest.fn().mockReturnThis(),
+  getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+};
+
 const mockRepository = () => ({
   findOne: jest.fn(),
   find: jest.fn(),
   save: jest.fn(),
   delete: jest.fn(),
-  findAndCount: jest.fn(),
+  createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
 });
 
 const mockScraperService = () => ({
@@ -38,6 +46,10 @@ describe("MediaService", () => {
     mediaRepo = module.get(getRepositoryToken(Media));
     scrapedPageRepo = module.get(getRepositoryToken(ScrapedPage));
     scraperService = module.get(ScraperService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe("scrapeAndSave", () => {
@@ -96,22 +108,51 @@ describe("MediaService", () => {
       const result = await service.scrapeAndSave([mockUrl]);
 
       expect(result.failed).toBe(1);
+      expect(result.failedUrls).toEqual([mockUrl]);
       expect(mediaRepo.save).not.toHaveBeenCalled();
       expect(scrapedPageRepo.save).toHaveBeenCalled();
     });
   });
 
   describe("getMedia", () => {
-    it("should call findAndCount with correct options", async () => {
-      mediaRepo.findAndCount.mockResolvedValue([[], 0]);
+    it("should call createQueryBuilder and return correct pagination syntax", async () => {
+      mockQueryBuilder.getManyAndCount.mockResolvedValueOnce([[{ id: 1 }], 1]);
 
-      await service.getMedia(1, 10, "image", "test");
+      const result = await service.getMedia(1, 10, "image", "test", "https://example.com", "desc");
 
-      expect(mediaRepo.findAndCount).toHaveBeenCalledWith(expect.objectContaining({
-        take: 10,
-        skip: 0,
-        where: expect.anything(),
-      }));
+      expect(mediaRepo.createQueryBuilder).toHaveBeenCalledWith("media");
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith("media.type = :type", { type: "image" });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith("media.sourceUrl = :sourceUrl", { sourceUrl: "https://example.com" });
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith("media.createdAt", "DESC");
+      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(0);
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
+      
+      expect(result).toEqual({
+        data: [{ id: 1 }],
+        total: 1,
+        page: 1,
+        totalPages: 1,
+      });
+    });
+  });
+
+  describe("getScrapedPagesGroupedByDomain", () => {
+    it("should fetch scraped pages and group them effectively by domain", async () => {
+      scrapedPageRepo.find.mockResolvedValue([
+        { id: 1, url: "https://example.com/1" } as ScrapedPage,
+        { id: 2, url: "https://example.com/2" } as ScrapedPage,
+        { id: 3, url: "https://test.com/1" } as ScrapedPage,
+        { id: 4, url: "invalid-url" } as ScrapedPage, // catch test
+      ]);
+
+      const result = await service.getScrapedPagesGroupedByDomain();
+      
+      expect(result).toHaveProperty("example.com");
+      expect(result["example.com"].length).toBe(2);
+      expect(result).toHaveProperty("test.com");
+      expect(result["test.com"].length).toBe(1);
+      expect(result).toHaveProperty("unknown");
+      expect(result["unknown"].length).toBe(1);
     });
   });
 });

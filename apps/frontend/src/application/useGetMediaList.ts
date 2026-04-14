@@ -1,4 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { QUERY_KEYS } from "./common";
 
 export const useGetMediaList = ({
   filter,
@@ -27,7 +28,7 @@ export const useGetMediaList = ({
     isLoading,
     isError,
   } = useInfiniteQuery({
-    queryKey: ["media", filter, debouncedSearch, sort, sourceUrl],
+    queryKey: [QUERY_KEYS.MEDIA, filter, debouncedSearch, sort, sourceUrl],
     queryFn: ({ pageParam }) => queryFn({ pageParam, filter, debouncedSearch, sort, sourceUrl }),
     initialPageParam: 1,
     getNextPageParam: (lastPage: any) =>

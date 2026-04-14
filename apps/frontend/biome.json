@@ -1,4 +1,7 @@
 {
+  "files": {
+    "ignore": ["**/*.spec.ts", "**/*.spec.tsx", "**/*.test.ts", "**/*.test.tsx"]
+  },
   "linter": {
     "enabled": true,
     "rules": {

@@ -1,4 +1,4 @@
-import { Check, Copy, X } from "lucide-react";
+import { Check, Link, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { MediaItemData } from "./MediaItem";
 
@@ -50,7 +50,7 @@ export function MediaModal({ item, onClose }: MediaModalProps) {
           </>
         ) : (
           <>
-            <Copy className="w-4 h-4" />
+            <Link className="w-4 h-4" />
             <span className="text-sm font-medium">Copy URL</span>
           </>
         )}

@@ -13,8 +13,8 @@ export const useScrollToTop = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      // Threshold: 5 times the viewport height
-      if (window.scrollY > window.innerHeight * 5) {
+      // Threshold to show Move To TOp btn: 3 times the viewport height
+      if (window.scrollY > window.innerHeight * 3) {
         setShouldShowScrollTop(true);
       } else {
         setShouldShowScrollTop(false);

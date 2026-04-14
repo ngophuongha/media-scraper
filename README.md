@@ -13,6 +13,7 @@ The system accepts a list of webpage URLs, extracts image/video assets, stores t
 - Tech Stack
 - Project Structure
 - Getting Started
+- AI Usage
 - Troubleshooting
 
 ---
@@ -134,7 +135,21 @@ After startup:
 - Front-end: http://localhost:5173
 - Back-end API: http://localhost:3000
 
-## 5. Troubleshooting
+---
+
+# AI Usage
+
+This project benefited from AI assistance during the development process. 
+
+### Development Support
+AI was used to accelerate the implementation of core **backend logic**, specifically for the site-scraping functions. It helped refine the extraction patterns for images and videos, ensuring more robust identification of media assets within static HTML.
+
+### Product Development
+From a product perspective, AI served as a **thinking partner**, helping to develop the initial concept and brainstorming ways to expand the implementation scope. It was used to explore potential user flows and edge-case scenarios like invalid URL input and network failures.
+
+---
+
+# Troubleshooting
 
 ### Docker Fails to Start / Build Issues
 

@@ -1,25 +1,13 @@
-import { Dropdown } from "../components/Dropdown";
-import { Filter } from "../components/Filter";
 import { MediaModal } from "../components/MediaModal";
 import { MoveToTop } from "../components/MoveToTop";
-import { Search } from "../components/Search";
-import { Sort } from "../components/Sort";
 import { useMediaList } from "../hooks/useMediaList";
 import { GalleryGrid } from "./GalleryGrid";
+import { GalleryHeader } from "./GalleryHeader";
 
 export const Gallery = () => {
   const {
-    setFilter,
-    setSearch,
-    setSort,
-    setSourceUrl,
-    debouncedSearch,
     selectedMedia,
     setSelectedMedia,
-    search,
-    filter,
-    sort,
-    sourceUrl,
   } = useMediaList();
 
   return (
@@ -32,23 +20,10 @@ export const Gallery = () => {
         />
       )}
 
-      {/* Search Bar */}
-      <div className="sticky top-0 z-10 flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between bg-white/90 backdrop-blur-md p-4 rounded-lg shadow-sm border border-gray-100 mb-4 transition-all">
-        <Search search={search} setSearch={setSearch} />
-        <div className="flex flex-row items-center gap-4 w-full xl:w-auto overflow-x-auto no-scrollbar">
-          <Dropdown sourceUrl={sourceUrl} setSourceUrl={setSourceUrl} />
-          <Filter filter={filter} setFilter={setFilter} />
-          <Sort sort={sort} setSort={setSort} />
-        </div>
-      </div>
+      <GalleryHeader />
 
-      <GalleryGrid
-        filter={filter}
-        debouncedSearch={debouncedSearch}
-        setSelectedMedia={setSelectedMedia}
-        sort={sort}
-        sourceUrl={sourceUrl}
-      />
+      <GalleryGrid />
+      
       <MoveToTop />
     </div>
   );
@@ -56,7 +31,7 @@ export const Gallery = () => {
 
 const SectionTitle = () => {
   return (
-    <div className="mb-8">
+    <div className="mb-8 px-4">
       <div className="flex items-baseline gap-2">
         <h2 className="text-3xl font-extrabold text-gray-900">Gallery</h2>
       </div>

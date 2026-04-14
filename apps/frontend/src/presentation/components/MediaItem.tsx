@@ -1,4 +1,4 @@
-import { Check, Copy, Maximize2, Play } from "lucide-react";
+import { Check, Maximize2, Play, Link } from "lucide-react";
 import { useCopyToClipboard } from "../../utils/useCopyToClipboard";
 
 export interface MediaItemData {
@@ -74,7 +74,7 @@ const MediaControl = ({ id, url }: MediaControlProps) => {
           {copiedId === id ? (
             <Check className="w-3.5 h-3.5 text-green-400" />
           ) : (
-            <Copy className="w-3.5 h-3.5" />
+            <Link className="w-3.5 h-3.5" />
           )}
         </button>
         <div className="p-1.5 rounded-lg bg-white/10 text-white">

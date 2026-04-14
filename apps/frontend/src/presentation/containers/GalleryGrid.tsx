@@ -1,26 +1,20 @@
 import { useInfiniteScroll } from "../../utils/useInfiniteScroll";
-import type { FilterType } from "../components/Filter";
 import { MediaItem, type MediaItemData } from "../components/MediaItem";
 import { GallerySkeleton } from "../components/MediaSkeleton";
 import { useMasonry } from "../hooks/useMasonry";
-import { useMediaListData } from "../hooks/useMediaList";
+import { useMediaList, useMediaListData } from "../hooks/useMediaList";
 import { ListErrorState } from "../shared/ListErrorState";
 import { NoMediaFound } from "../shared/NoMediaFound";
 
-type GalleryGridProps = {
-  filter: FilterType;
-  debouncedSearch: string;
-  sort: "asc" | "desc";
-  sourceUrl: string;
-  setSelectedMedia: (item: MediaItemData) => void;
-};
-export const GalleryGrid = ({
-  filter,
-  debouncedSearch,
-  sort,
-  sourceUrl,
-  setSelectedMedia,
-}: GalleryGridProps) => {
+export const GalleryGrid = () => {
+  const {
+    filter,
+    debouncedSearch,
+    sort,
+    sourceUrl,
+    setSelectedMedia,
+  } = useMediaList();
+
   const {
     fetchNextPage,
     isFetchingNextPage,
@@ -29,11 +23,13 @@ export const GalleryGrid = ({
     data,
     isError,
   } = useMediaListData({ filter, debouncedSearch, sort, sourceUrl });
+
   const observerTarget = useInfiniteScroll({
     onLoadMore: () => fetchNextPage(),
     isLoading: isLoading || isFetchingNextPage,
     hasMore: hasNextPage ?? false,
   });
+
   const allItems = data?.pages.flatMap((page) => page.data) || [];
   const { columns } = useMasonry(allItems);
 
@@ -41,36 +37,39 @@ export const GalleryGrid = ({
 
   return (
     <>
-      {isLoading ? (
-        <GallerySkeleton />
-      ) : allItems.length === 0 ? (
-        <NoMediaFound />
-      ) : (
-        <>
-          <div className="flex flex-row gap-4 w-full items-start pt-4">
-            {columns.map((column, colIdx) => (
-              <div key={colIdx} className="flex-1 flex flex-col gap-4">
-                {column.map((item: MediaItemData) => (
-                  <MediaItem
-                    key={item.id}
-                    item={item}
-                    setSelectedMedia={setSelectedMedia}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
+      <div className="px-4">
+        {isLoading ? (
+          <GallerySkeleton />
+        ) : allItems.length === 0 ? (
+          <NoMediaFound />
+        ) : (
+          <>
+            <div className="flex flex-row gap-4 w-full items-start pt-4">
+              {columns.map((column, colIdx) => (
+                <div key={colIdx} className="flex-1 flex flex-col gap-4">
+                  {column.map((item: MediaItemData) => (
+                    <MediaItem
+                      key={item.id}
+                      item={item}
+                      setSelectedMedia={setSelectedMedia}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
 
-          {/* Infinite Scroll Trigger & Skeletons */}
-          <div ref={observerTarget} className="py-12">
-            {isFetchingNextPage && <GallerySkeleton />}
-            {!hasNextPage && allItems.length > 0 && <EndOfGallery />}
-          </div>
-        </>
-      )}
+            {/* Infinite Scroll Trigger & Skeletons */}
+            <div ref={observerTarget} className="py-12">
+              {isFetchingNextPage && <GallerySkeleton />}
+              {!hasNextPage && allItems.length > 0 && <EndOfGallery />}
+            </div>
+          </>
+        )}
+      </div>
     </>
   );
 };
+
 const EndOfGallery = () => {
   return (
     <div className="text-center py-8">

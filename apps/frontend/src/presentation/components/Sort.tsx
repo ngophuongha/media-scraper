@@ -1,8 +1,9 @@
-import { ArrowDownAZ, ArrowUpAZ } from "lucide-react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 
+export type SortType = "asc" | "desc";
 export type SortProps = {
-  sort: "asc" | "desc";
-  setSort: (s: "asc" | "desc") => void;
+  sort: SortType;
+  setSort: (s: SortType) => void;
 };
 
 export const Sort = ({ sort, setSort }: SortProps) => {
@@ -20,7 +21,7 @@ export const Sort = ({ sort, setSort }: SortProps) => {
               : "text-gray-500 hover:text-gray-700"
           }`}
         >
-          <ArrowDownAZ className="w-4 h-4" />
+          <ArrowDown className="w-4 h-4" />
           Newest
         </button>
         <button
@@ -31,7 +32,7 @@ export const Sort = ({ sort, setSort }: SortProps) => {
               : "text-gray-500 hover:text-gray-700"
           }`}
         >
-          <ArrowUpAZ className="w-4 h-4" />
+          <ArrowUp className="w-4 h-4" />
           Oldest
         </button>
       </div>

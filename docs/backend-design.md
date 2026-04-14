@@ -14,7 +14,7 @@
 
 | # | Quality | Target |
 |---|---|---|
-| NF1 | **Throughput** | Handle 5 000 simultaneous HTTP requests |
+| NF1 | **Throughput** | Handle 5,000 simultaneous HTTP requests |
 | NF2 | **Memory** | Run within 1 GB RAM |
 | NF3 | **Data freshness** | Serve cached results for up to 24 hours to prevent unnecessary re-fetching |
 
@@ -24,25 +24,38 @@
 
 | Layer | Choice | Why |
 |---|---|---|
-| **Framework** | NestJS 11 | Opinionated DI + module system; Swagger built-in; mirrors Angular patterns FE devs recognise |
-| **HTTP client** | Axios | Timeout config, interceptors, straightforward error classification |
-| **HTML parser** | Cheerio | jQuery-like API on static HTML; no headless browser overhead |
-| **ORM** | TypeORM | Decorator-driven entities; `synchronize: true` for zero-migration dev cycle |
-| **Database** | MySQL 8 | Relational integrity; unique index on `scraped_pages.url` |
-| **API Docs** | Swagger / OpenAPI | Zero-config with `@ApiOperation` decorators; explorable without Postman |
-| **Container** | Docker Compose | Single command spins up DB + API + FE |
-| **Linter** | Biome | Faster than ESLint+Prettier; single binary |
+| **Framework** | NestJS | DI + Module architecture, built-in Swagger natively |
+| **HTTP client** | Axios | Timeout config, robust status handling |
+| **HTML parser** | Cheerio | Fast jQuery-like dom parsing API, zero headless browser RAM overhead |
+| **ORM & DB** | TypeORM & MySQL 8 | Relational integrity mappings and rapid feature iterations |
 
 ---
 
-## 3. Module Architecture
+## 3. High-Level Flow
+
+At a high level, the `MediaService` directly handles two primary functional operations coming from clients: scraping new URLs and reading existing records from database:
+
+```mermaid
+flowchart LR
+    Client -->|POST /api/media/scrape| MS[MediaService]
+    Client -->|GET /api/media| MS
+
+    MS -->|Write / Read cache| DB[(Database)]
+    MS -->|Read filtered records| DB
+    MS -->|Download HTML| Target[External Websites]
+```
+
+---
+
+## 4. Architecture & Data Model
+
+### 4.1 Module Architecture
 
 ```mermaid
 graph TD
     subgraph NestJS App
         AM[AppModule]
         MM[MediaModule]
-        MC[MediaController]
         MS[MediaService]
         SS[ScraperService]
         ME[(Media Entity)]
@@ -57,211 +70,88 @@ graph TD
     MS --> SPE
 ```
 
----
-
-## 4. System Flow
-
-### 3.1 Scrape Request (`POST /api/media/scrape`)
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Controller as MediaController
-    participant Service as MediaService
-    participant Cache as DB (scraped_pages)
-    participant Scraper as ScraperService
-    participant Target as Target Website
-    participant DB as DB (media)
-
-    Client->>Controller: POST /api/media/scrape { urls: [...] }
-    Controller->>Service: scrapeAndSave(urls)
-
-    loop For each URL (sequential)
-        Service->>Cache: SELECT WHERE url = ?
-        alt Cache HIT & fresh (< 24h)
-            Cache-->>Service: ScrapedPage row
-            Service-->>Service: count existing media, skip re-scrape
-        else Cache MISS or stale or FAILED
-            Service->>Scraper: scrapeUrl(url)
-            Scraper->>Target: GET url (axios, 10s timeout)
-            Target-->>Scraper: HTML
-            Scraper->>Scraper: cheerio.load — extract img/video
-            Scraper-->>Service: ScrapeResponse { results, hash, status }
-            Service->>Cache: UPSERT scraped_pages
-            Service->>DB: DELETE media WHERE sourceUrl = url
-            Service->>DB: INSERT media[] (deduplicated by url)
-        end
-    end
-
-    Service-->>Controller: { count, saved, cached, failed }
-    Controller-->>Client: 202 Accepted
-```
-
-### 3.2 Read Request (`GET /api/media`)
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Controller as MediaController
-    participant Service as MediaService
-    participant DB as DB (media)
-
-    Client->>Controller: GET /api/media?page=1&limit=20&type=image&search=foo&sort=desc
-    Controller->>Service: getMedia(page, limit, type, search, sort)
-    Service->>DB: Query
-    DB-->>Service: Media[], total
-    Service-->>Controller: { data, total, page, totalPages }
-    Controller-->>Client: 200 OK
-```
-
----
-
-## 5. Scraping Logic
-
-`ScraperService.scrapeUrl()` — **static HTML only**, no JS execution.
-
-```mermaid
-flowchart TD
-    A[GET url via Axios — 10s timeout] --> B{HTTP Error?}
-    B -->|403| C[Return REFUSED]
-    B -->|Other| D[Return FAILED]
-    B -->|200| E[SHA-256 hash of HTML]
-    E --> F[cheerio.load HTML]
-    F --> G[Loop img tags]
-    G --> H{isBadUrl?\ndata: / javascript: / #}
-    H -->|yes| I[Skip]
-    H -->|no| J[normalize → absolute URL]
-    J --> K{isNoise?\nfavicon / 1px element}
-    K -->|yes| I
-    K -->|no| L[guessType by file extension]
-    L --> M[Push to results]
-    F --> N[Loop video + source tags]
-    N --> H
-    M --> O[Return ScrapeResponse]
-```
-
-**Filtering rules:**
-
-| Filter | Rule |
+| Module / Component | Purpose |
 |---|---|
-| Bad URLs | Skip `data:image/`, `javascript:`, bare `#` |
-| Noise images | Skip `favicon.ico`; elements with `width ≤ 1` or `height ≤ 1` |
-| Type guessing | Extension-based (`.mp4/.webm/.mov/.ogg` → video; `.jpg/.png/.gif/.webp` → image) |
-| Deduplication | `Map` keyed on media URL within each batch before DB insert |
-| Stale data | `DELETE media WHERE sourceUrl` before re-inserting on re-scrape |
+| **AppModule** | The root application module that loads DB configuration and registers all sub-modules. |
+| **MediaModule** | Groups all media-related logic, pulling in the services and TypeORM entities. |
+| **MediaService** | The core business logic layer. Manages incoming API requests, scraping coordination, database persistence, and queries. |
+| **ScraperService** | A utility service solely responsible for downloading and parsing HTML into media objects. |
+| **Entities** | Define the database schema mappings (`media` and `scraped_pages`). |
 
----
+### 4.2 Database Schema
 
-## 6. Caching Strategy
-
-```mermaid
-flowchart LR
-    A[URL arrives] --> B{scraped_pages row exists?}
-    B -->|No| C[Scrape now]
-    B -->|Yes| D{status=SUCCESS\nAND age < 24h?}
-    D -->|No| C
-    D -->|Yes| E[Reuse existing media rows\nno network call]
-    C --> F[Upsert scraped_pages\nReplace media rows]
-```
-
-- **TTL:** 24 h (`CACHE_TTL_MS` constant)
-- **Cache key:** exact URL string (unique index on `scraped_pages.url`)
-- **Invalidation:** expired or previously-failed URLs trigger a full re-scrape + replace
-
----
-
-## 7. Concurrency Model
-
-```mermaid
-graph LR
-    subgraph Node.js Event Loop
-        R1[Request 1 POST /scrape] -->|yield on await| EL((Event Loop))
-        R2[Request 2 GET /media] -->|yield on await| EL
-        R3[Request N] -->|yield on await| EL
-    end
-    EL --> Net[Network I/O]
-    EL --> DB[(MySQL)]
-
-    subgraph "Inside scrapeAndSave"
-        direction TB
-        U1[url 1] -->|await| U2[url 2] -->|await| UN[url N]
-    end
-```
-
-- Multiple HTTP requests run **concurrently** through the event loop (no threads blocked).
-- Inside `scrapeAndSave`, URLs process **sequentially** — intentional to avoid hammering one target domain in parallel.
-
----
-
-## 8. Acknowledged Limitations
-
-### 8.1 Scraping Algorithm
-
-| Limitation | Impact |
-|---|---|
-| **Static HTML only** | SPAs (React/Vue/Next.js) that render via JS return 0 results |
-| **Sequential URL loop** | Batch of N URLs = N × avg_page_latency wall-clock time |
-| **No robots.txt check** | May violate target site's scraping policy |
-| **No retry logic** | Transient error → immediately marked `FAILED`, no backoff |
-| **CSS background-image skipped** | Only `<img src>` and `<video>/<source src>` are parsed |
-| **Lazy-loaded images missed** | `data-src` / IntersectionObserver patterns not captured |
-| **No redirect tracking** | Follows Axios default redirects; final URL not recorded |
-
-### 8.2 Concurrency at Scale (5 000 requests / 1 GB RAM)
-
-> [!WARNING]
-> The current single-process architecture is **not designed for 5 000 simultaneous scrape requests** on 1 GB RAM.
-
-| Constraint | Reality |
-|---|---|
-| **V8 heap** | Default limit ~512 MB; 1 GB OS leaves ~600–700 MB after OS + MySQL |
-| **Open sockets** | Each in-flight Axios call holds a socket + response buffer; default `ulimit` is 1 024 file descriptors |
-| **MySQL pool** | TypeORM default pool = 10 connections; 5 000 concurrent requests queue hard here |
-| **Full HTML buffers** | Each scrape loads the entire HTML page into memory; 5 000 simultaneous = OOM risk |
-| **Read-only GET** | Realistic ceiling ~200–500 concurrent before DB I/O becomes bottleneck |
-
-**What's needed to genuinely support 5 000 concurrent scrape requests:**
-- **Queue (BullMQ + Redis):** decouple HTTP acceptance from scraping; return job ID immediately, poll for result
-- **Worker pool:** dedicated scraping workers with concurrency limits per domain
-- **Connection pool tuning:** `typeorm pool.max = 50+` + read replica for `GET` traffic
-- **Horizontal scaling:** multiple Node.js instances behind a load balancer
-- **Stream processing:** don't buffer entire HTML — pipe and parse on the fly
-
----
-
-## 9. API Reference
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/media/scrape` | Trigger scrape for a list of URLs → 202 |
-| `GET` | `/api/media` | List media (page, limit, type, search, sort) |
-| `GET` | `/api/media/scraped-pages` | Scraped pages grouped by domain |
-| `GET` | `/api/docs` | Swagger UI |
-
----
-
-## 10. Data Model
+The system uses a relational model inside MySQL.
 
 ```mermaid
 erDiagram
-    MEDIA {
+    ScrapedPage {
         int id PK
-        varchar url
-        varchar type
-        varchar sourceUrl
-        varchar title
-        text alt
-        datetime createdAt
-    }
-
-    SCRAPED_PAGES {
-        int id PK
-        varchar url UK
+        string url
+        string status
+        string hash
+        string errorMessage
         datetime lastScrapedAt
-        enum status
-        varchar hash
-        text errorMessage
     }
-
-    SCRAPED_PAGES ||--o{ MEDIA : "sourceUrl → sourceUrl"
+    Media {
+        int id PK
+        string sourceUrl FK
+        string url
+        string type
+        string title
+        string alt
+    }
+    ScrapedPage ||--o{ Media : "sourceUrl tracks origin"
 ```
+
+---
+
+## 5. Core Logic: Scraping & Caching
+
+Scraping is the core focus of the system. Architecture around reliable extraction and simplified caching workflows are applied.
+
+### 5.1 Detailed Scraping Workflows
+- **Batch Processing**: When client submits multiple URLs, the system loops through them **sequentially**. This serves as an implicit outbound rate limit, preventing the system from accidentally hammering a target external server with massive parallel GET requests.
+- **Fetching HTML**: Uses Axios to download static HTML content.
+- **DOM Parsing & Extraction**: Cheerio loads the DOM. The scraper recursively searches and extracts elements matching tags like `<img>`, `<video>`, and `<source>`.
+- **Filtering Noise**: The raw extracted array is heavily filtered to discard non-valuable items:
+  - Base64 `data:` URIs (pollute the DB footprint).
+  - Known tracking pixels (e.g., 1x1 width inline styling).
+  - Invalid protocols like `javascript:` or `#`.
+- **URL Normalization**: Resolves paths missing hostnames (like `/assets/logo.png`) into absolute URLs relying on the originally evaluated destination host context.
+- **Upsert Execution**: For every successful scrape, the system clears stale media tied to that `sourceUrl`, deduplicates the array of extracted assets in-memory, and performs a bulk insert for high transactional performance.
+
+### 5.2 Caching Strategy & Architecture Decision
+- **Algorithm**: The scraper checks the `scraped_pages` table before initiating a network fetch. If a `SUCCESS` status is found that is less than 24 hours old, the scraper bypasses downloading HTML entirely.
+- **Database Indexing**: To achieve the high-speed read performance typical of in-memory caches, we utilize database indexes on the `url` column. This enables highly efficient cache-hit verification directly at the database layer.
+- **Design Decision — No Redis Layer**: Skip an external memory cache like Redis for a **Single Source of Truth and Simplicity** pattern.
+
+---
+
+## 6. Security & Error Handling
+
+### 6.1 Rate Limiting
+To protect against system abuse and unintentional infinite loops from the frontend, the backend is secured with `@nestjs/throttler`.
+- **Global Limit**: The API endpoints enforce a strict maximum of **100 requests per minute** per client connection across all APIs.
+- **Load Testing**: Provide a load test script (`load-test.js`) to simulate heavy traffic for this service.
+
+### 6.2 Error Code Cases
+
+| HTTP Status | Context | Response Meaning |
+|-------------|---------|------------------|
+| **200 OK** | `GET` APIs | Successful retrieval of paginated media data or the distinct scraped pages list. |
+| **202 Accepted** | `POST` Scrape | The scraping batch process executed. Instead of dropping the whole request if one URL out of five fails, the API gracefully accepts the request and returns specific failing URLs in a subset `failedUrls` array back to the UI. |
+| **400 Bad Request** | All APIs | Input payload validation failed (e.g., malformed URL syntax, empty body array, invalid numerical pagination filters). |
+| **403 Forbidden** | Axios (Internal) | The target external server explicitly refused connection via captchas or bot-nets protections (captured gracefully so the app does not crash internally). |
+| **429 Too Many Req.** | All APIs | The client IP has exceeded the 100 requests/minute global rate limit threshold. |
+| **500 Server Error** | All APIs | Complete unhandled application crash or unforeseen MySQL database downtime. |
+
+---
+
+## 7. API Reference
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/media/scrape` | Trigger scrape for a batch payload list of URLs → returns 202 |
+| `GET` | `/api/media` | List paginated & searched/filtered media |
+| `GET` | `/api/media/scraped-pages` | Distinct scraped pages grouped tightly by domain name |
+| `GET` | `/api/docs` | Built-in Swagger API Documentation landing page UI |
