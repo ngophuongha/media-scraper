@@ -8,13 +8,13 @@ The system accepts a list of webpage URLs, extracts image/video assets, stores t
 
 # Table of Contents
 
-- Overview
-- Documentation
-- Tech Stack
-- Project Structure
-- Getting Started
-- AI Usage
-- Troubleshooting
+- [Overview](#overview)
+- [Documentation](#documentation)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [AI Usage](#ai-usage)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -36,7 +36,7 @@ The system accepts a list of webpage URLs, extracts image/video assets, stores t
 - [Product Requirement Document](./docs/product-design.md)
 - [Front-end System Design](./docs/frontend-design.md)
 - [Back-end System Design](./docs/backend-design.md)
-- Demo Video: `[Link Here]`
+- Demo Video: `[https://drive.google.com/file/d/1insZoqOoC4P5FoAOS8xvg32ncv6Y8lJ7/view?usp=sharing]`
 
 ---
 
