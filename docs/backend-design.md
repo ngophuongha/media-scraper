@@ -155,3 +155,10 @@ To protect against system abuse and unintentional infinite loops from the fronte
 | `GET` | `/api/media` | List paginated & searched/filtered media |
 | `GET` | `/api/media/scraped-pages` | Distinct scraped pages grouped tightly by domain name |
 | `GET` | `/api/docs` | Built-in Swagger API Documentation landing page UI |
+
+---
+
+## 8. Acknowledged Limitations
+
+- **Concurrency**: Batch processing currently fetches URLs sequentially. Implementing concurrent fetching and processing could significantly reduce latency for larger batches of URLs.
+- **Dynamic Content Extraction**: The scraper relies on static HTML parsing (`cheerio`). Media elements loaded dynamically via client-side JavaScript execution (e.g., in modern SPAs) may not be captured.
